@@ -1,4 +1,5 @@
 import type { UploadedQuiz } from '../types/quiz'
+import { formatDisplayText } from '../lib/text'
 
 type QuizListProps = {
   quizzes: UploadedQuiz[]
@@ -9,9 +10,7 @@ type QuizListProps = {
 }
 
 const formatQuizTitle = (subject: string) => {
-  const normalized = subject.trim().toLowerCase()
-  const subjectLabel = normalized === 'ciencias' ? 'Ciências' : subject
-  return `Quiz ${subjectLabel.charAt(0).toUpperCase()}${subjectLabel.slice(1)}`
+  return `Quiz ${formatDisplayText(subject)}`
 }
 
 function QuizList({ quizzes, currentPage, totalPages, onChangePage, onOpenQuiz }: QuizListProps) {
@@ -35,7 +34,7 @@ function QuizList({ quizzes, currentPage, totalPages, onChangePage, onOpenQuiz }
           >
             <h2 className="truncate text-base font-semibold text-slate-100">{formatQuizTitle(quiz.data.subject)}</h2>
             <p className="mt-2 text-sm text-slate-300">
-              {quiz.data.subject} · {quiz.data.level}
+              {formatDisplayText(quiz.data.subject)} · {formatDisplayText(quiz.data.level)}
             </p>
             <p className="mt-1 text-xs text-slate-400">
               {quiz.data.totalQuestions} questões · origem: {quiz.sourceType}
