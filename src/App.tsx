@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState, type ChangeEvent, type FormEvent } from 'react'
 import type { Session } from '@supabase/supabase-js'
+import { ToastContainer, toast } from 'react-toastify'
 import QuestionCard from './components/QuestionCard'
 import QuizList from './components/QuizList'
 import {
@@ -66,8 +67,11 @@ function App() {
       setUploadedQuizzes(quizzes)
       resetViewer()
       setErrorMessage(null)
+      toast.success('Arquivos enviados com sucesso.')
     } catch (error) {
-      setErrorMessage(error instanceof Error ? error.message : 'Erro ao enviar arquivos para o Supabase.')
+      const message = error instanceof Error ? error.message : 'Erro ao enviar arquivos para o Supabase.'
+      setErrorMessage(message)
+      toast.error(message)
     } finally {
       setIsLoading(false)
     }
@@ -156,13 +160,17 @@ function App() {
     try {
       if (authMode === 'login') {
         await signInWithEmail(email, password)
+        toast.success('Login realizado com sucesso.')
       } else {
         await signUpWithEmailAndInviteToken(email, password, inviteToken)
         setAuthMode('login')
         setAuthError('Cadastro realizado. Faça login para continuar.')
+        toast.success('Cadastro realizado com sucesso.')
       }
     } catch (error) {
-      setAuthError(error instanceof Error ? error.message : 'Falha na autenticação.')
+      const message = error instanceof Error ? error.message : 'Falha na autenticação.'
+      setAuthError(message)
+      toast.error(message)
     } finally {
       setAuthLoading(false)
     }
@@ -172,8 +180,11 @@ function App() {
     try {
       await signOutUser()
       resetViewer()
+      toast.success('Logout realizado com sucesso.')
     } catch (error) {
-      setErrorMessage(error instanceof Error ? error.message : 'Erro ao sair da conta.')
+      const message = error instanceof Error ? error.message : 'Erro ao sair da conta.'
+      setErrorMessage(message)
+      toast.error(message)
     }
   }
 
@@ -181,6 +192,7 @@ function App() {
     return (
       <main className="mx-auto flex min-h-screen w-full max-w-4xl items-center justify-center bg-slate-950 px-4 py-6 text-slate-100">
         <p className="text-sm text-slate-300">Carregando autenticação...</p>
+        <ToastContainer position="top-right" autoClose={3500} theme="dark" />
       </main>
     )
   }
@@ -243,6 +255,7 @@ function App() {
               : 'Já tem conta? Fazer login'}
           </button>
         </section>
+        <ToastContainer position="top-right" autoClose={3500} theme="dark" />
       </main>
     )
   }
@@ -258,8 +271,18 @@ function App() {
           <button
             type="button"
             onClick={handleSignOut}
-            className="rounded-md border border-slate-700 px-3 py-1.5 text-sm hover:bg-slate-800"
+            className="inline-flex items-center gap-2 rounded-md border border-red-500/60 bg-red-500/10 px-3 py-1.5 text-sm font-medium text-red-300 hover:bg-red-500/20"
           >
+            <svg viewBox="0 0 24 24" aria-hidden="true" className="size-4">
+              <path
+                d="M14 7V4a1 1 0 0 0-1-1H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h8a1 1 0 0 0 1-1v-3m-4-5h11m0 0-3-3m3 3-3 3"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="1.8"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              />
+            </svg>
             Sair
           </button>
         </div>
@@ -351,6 +374,7 @@ function App() {
           ) : null}
         </section>
       )}
+      <ToastContainer position="top-right" autoClose={3500} theme="dark" />
     </main>
   )
 }

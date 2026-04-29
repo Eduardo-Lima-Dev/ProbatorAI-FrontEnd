@@ -5,6 +5,10 @@ const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL ?? import.meta.env.NEXT_P
 const SUPABASE_ANON_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY ?? import.meta.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY
 const SUPABASE_BUCKET = import.meta.env.VITE_SUPABASE_BUCKET ?? 'quizzes-json'
 let supabaseClient: ReturnType<typeof createClient> | null = null
+type InviteRpcResult = { data: boolean | null; error: { message: string } | null }
+type InviteRpcClient = {
+  rpc: (fn: string, args: { p_token: string }) => Promise<InviteRpcResult>
+}
 
 const assertSupabaseEnv = () => {
   if (!SUPABASE_URL || !SUPABASE_ANON_KEY) {
@@ -22,7 +26,8 @@ const getSupabaseClient = () => {
 
 const consumeInviteToken = async (token: string) => {
   const supabase = getSupabaseClient()
-  const { data, error } = await (supabase as any).rpc('consume_signup_invite_token', { p_token: token })
+  const rpcClient = supabase as unknown as InviteRpcClient
+  const { data, error } = await rpcClient.rpc('consume_signup_invite_token', { p_token: token })
   if (error) {
     throw new Error(`Falha ao validar token de convite: ${error.message}`)
   }
@@ -33,7 +38,8 @@ const consumeInviteToken = async (token: string) => {
 
 const releaseInviteToken = async (token: string) => {
   const supabase = getSupabaseClient()
-  await (supabase as any).rpc('release_signup_invite_token', { p_token: token })
+  const rpcClient = supabase as unknown as InviteRpcClient
+  await rpcClient.rpc('release_signup_invite_token', { p_token: token })
 }
 
 const isQuizData = (value: unknown): value is QuizData => {
