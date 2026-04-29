@@ -17,6 +17,7 @@ import type { QuizQuestion, UploadedQuiz } from './types/quiz'
 
 const ITEMS_PER_PAGE = 10
 const IS_PRODUCTION = import.meta.env.PROD
+const normalizeFilterValue = (value: string) => value.trim().toLocaleLowerCase('pt-BR')
 const formatQuizTitle = (subject: string) => {
   return `Quiz ${formatDisplayText(subject)}`
 }
@@ -37,17 +38,37 @@ function App() {
   const [inviteToken, setInviteToken] = useState('')
   const [authError, setAuthError] = useState<string | null>(null)
   const [authLoading, setAuthLoading] = useState(false)
+  const [subjectFilter, setSubjectFilter] = useState('all')
+  const [levelFilter, setLevelFilter] = useState('all')
 
   const selectedQuiz = useMemo(
     () => uploadedQuizzes.find((quiz) => quiz.id === selectedQuizId) ?? null,
     [uploadedQuizzes, selectedQuizId],
   )
 
-  const totalPages = Math.max(1, Math.ceil(uploadedQuizzes.length / ITEMS_PER_PAGE))
+  const subjectOptions = useMemo(() => {
+    return Array.from(new Set(uploadedQuizzes.map((quiz) => normalizeFilterValue(quiz.data.subject)))).sort()
+  }, [uploadedQuizzes])
+
+  const levelOptions = useMemo(() => {
+    return Array.from(new Set(uploadedQuizzes.map((quiz) => normalizeFilterValue(quiz.data.level)))).sort()
+  }, [uploadedQuizzes])
+
+  const filteredQuizzes = useMemo(() => {
+    return uploadedQuizzes.filter((quiz) => {
+      const quizSubject = normalizeFilterValue(quiz.data.subject)
+      const quizLevel = normalizeFilterValue(quiz.data.level)
+      const subjectMatches = subjectFilter === 'all' || quizSubject === subjectFilter
+      const levelMatches = levelFilter === 'all' || quizLevel === levelFilter
+      return subjectMatches && levelMatches
+    })
+  }, [uploadedQuizzes, subjectFilter, levelFilter])
+
+  const totalPages = Math.max(1, Math.ceil(filteredQuizzes.length / ITEMS_PER_PAGE))
   const paginatedQuizzes = useMemo(() => {
     const start = (currentPage - 1) * ITEMS_PER_PAGE
-    return uploadedQuizzes.slice(start, start + ITEMS_PER_PAGE)
-  }, [currentPage, uploadedQuizzes])
+    return filteredQuizzes.slice(start, start + ITEMS_PER_PAGE)
+  }, [currentPage, filteredQuizzes])
 
   const handleFilesUpload = async (event: ChangeEvent<HTMLInputElement>) => {
     const fileList = event.target.files
@@ -305,6 +326,47 @@ function App() {
         ) : null}
         {isLoading ? <p className="mt-3 text-sm text-slate-400">Carregando quizzes...</p> : null}
       </div>
+
+      {!selectedQuiz ? (
+        <div className="mb-4 grid gap-3 rounded-xl border border-slate-800 bg-slate-900 p-4 sm:grid-cols-2">
+          <label className="text-sm text-slate-300">
+            Matéria
+            <select
+              value={subjectFilter}
+              onChange={(event) => {
+                setSubjectFilter(event.target.value)
+                setCurrentPage(1)
+              }}
+              className="mt-1 w-full rounded-md border border-slate-700 bg-slate-950 px-3 py-2 text-sm text-slate-100"
+            >
+              <option value="all">Todas</option>
+              {subjectOptions.map((option) => (
+                <option key={option} value={option}>
+                  {formatDisplayText(option)}
+                </option>
+              ))}
+            </select>
+          </label>
+          <label className="text-sm text-slate-300">
+            Dificuldade
+            <select
+              value={levelFilter}
+              onChange={(event) => {
+                setLevelFilter(event.target.value)
+                setCurrentPage(1)
+              }}
+              className="mt-1 w-full rounded-md border border-slate-700 bg-slate-950 px-3 py-2 text-sm text-slate-100"
+            >
+              <option value="all">Todas</option>
+              {levelOptions.map((option) => (
+                <option key={option} value={option}>
+                  {formatDisplayText(option)}
+                </option>
+              ))}
+            </select>
+          </label>
+        </div>
+      ) : null}
 
       {!selectedQuiz ? (
         <QuizList
