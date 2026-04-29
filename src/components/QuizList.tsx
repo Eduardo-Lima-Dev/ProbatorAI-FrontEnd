@@ -1,5 +1,5 @@
 import type { UploadedQuiz } from '../types/quiz'
-import { formatDisplayText } from '../lib/text'
+import { formatDisplayText, formatFileTitle } from '../lib/text'
 
 type QuizListProps = {
   quizzes: UploadedQuiz[]
@@ -7,10 +7,6 @@ type QuizListProps = {
   totalPages: number
   onChangePage: (page: number) => void
   onOpenQuiz: (quizId: string) => void
-}
-
-const formatQuizTitle = (subject: string) => {
-  return `Quiz ${formatDisplayText(subject)}`
 }
 
 function QuizList({ quizzes, currentPage, totalPages, onChangePage, onOpenQuiz }: QuizListProps) {
@@ -32,7 +28,7 @@ function QuizList({ quizzes, currentPage, totalPages, onChangePage, onOpenQuiz }
             onClick={() => onOpenQuiz(quiz.id)}
             className="rounded-xl border border-slate-800 bg-slate-900 p-4 text-left transition hover:border-indigo-400 hover:bg-slate-800"
           >
-            <h2 className="truncate text-base font-semibold text-slate-100">{formatQuizTitle(quiz.data.subject)}</h2>
+            <h2 className="truncate text-base font-semibold text-slate-100">{formatFileTitle(quiz.fileName)}</h2>
             <p className="mt-2 text-sm text-slate-300">
               {formatDisplayText(quiz.data.subject)} · {formatDisplayText(quiz.data.level)}
             </p>

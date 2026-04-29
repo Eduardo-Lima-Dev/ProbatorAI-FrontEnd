@@ -14,3 +14,9 @@ export const formatDisplayText = (value: string) => {
     .map((word) => word.split('-').map(capitalizeSegment).join('-'))
     .join(' ')
 }
+
+export const formatFileTitle = (fileName: string) => {
+  const withoutExtension = fileName.replace(/\.[^/.]+$/, '')
+  const withSpaces = withoutExtension.replace(/[_-]+/g, ' ')
+  return formatDisplayText(withSpaces)
+}

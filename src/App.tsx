@@ -3,7 +3,7 @@ import type { Session } from '@supabase/supabase-js'
 import { ToastContainer, toast } from 'react-toastify'
 import QuestionCard from './components/QuestionCard'
 import QuizList from './components/QuizList'
-import { formatDisplayText } from './lib/text'
+import { formatDisplayText, formatFileTitle } from './lib/text'
 import {
   getCurrentSession,
   loadQuizzesFromSupabase,
@@ -18,9 +18,6 @@ import type { QuizQuestion, UploadedQuiz } from './types/quiz'
 const ITEMS_PER_PAGE = 10
 const IS_PRODUCTION = import.meta.env.PROD
 const normalizeFilterValue = (value: string) => value.trim().toLocaleLowerCase('pt-BR')
-const formatQuizTitle = (subject: string) => {
-  return `Quiz ${formatDisplayText(subject)}`
-}
 
 function App() {
   const [uploadedQuizzes, setUploadedQuizzes] = useState<UploadedQuiz[]>([])
@@ -387,7 +384,7 @@ function App() {
               >
                 Voltar para lista
               </button>
-              <h2 className="text-lg font-semibold text-slate-100 sm:text-xl">{formatQuizTitle(selectedQuiz.data.subject)}</h2>
+              <h2 className="text-lg font-semibold text-slate-100 sm:text-xl">{formatFileTitle(selectedQuiz.fileName)}</h2>
               <p className="text-sm text-slate-300">
                 {formatDisplayText(selectedQuiz.data.subject)} · {formatDisplayText(selectedQuiz.data.level)} · {selectedQuiz.data.totalQuestions} questões
               </p>
