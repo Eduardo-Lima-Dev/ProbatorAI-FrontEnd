@@ -46,6 +46,35 @@ Preencha:
 
 Vantagem: sem redeploy para novos arquivos, URLs públicas e consumo por qualquer site (com CORS adequado).
 
+## Auth com token de convite único
+
+O app usa Supabase Auth com email/senha e exige token de convite único no cadastro.
+
+1. Execute o script SQL:
+
+`supabase/invite_tokens.sql`
+
+2. Gere um token de convite (exemplo UUID):
+
+```bash
+node -e "console.log(require('crypto').randomUUID())"
+```
+
+3. Salve o hash do token no banco (SQL Editor):
+
+```sql
+insert into public.signup_invite_tokens (token_hash, note, expires_at)
+values (
+  encode(digest('TOKEN_GERADO_AQUI', 'sha256'), 'hex'),
+  'convite inicial',
+  now() + interval '7 days'
+);
+```
+
+4. Entregue o token bruto ao usuário convidado.
+
+No cadastro, o app valida e consome o token via RPC (`consume_signup_invite_token`).
+
 ## Desenvolvimento
 
 ```bash

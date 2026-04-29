@@ -1,9 +1,40 @@
-import { createClient } from '@supabase/supabase-js'
+import { createClient, type AuthChangeEvent, type Session } from '@supabase/supabase-js'
 import type { QuizData, UploadedQuiz } from '../types/quiz'
 
 const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL ?? import.meta.env.NEXT_PUBLIC_SUPABASE_URL
 const SUPABASE_ANON_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY ?? import.meta.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY
 const SUPABASE_BUCKET = import.meta.env.VITE_SUPABASE_BUCKET ?? 'quizzes-json'
+let supabaseClient: ReturnType<typeof createClient> | null = null
+
+const assertSupabaseEnv = () => {
+  if (!SUPABASE_URL || !SUPABASE_ANON_KEY) {
+    throw new Error('Defina VITE_SUPABASE_URL e VITE_SUPABASE_ANON_KEY no ambiente.')
+  }
+}
+
+const getSupabaseClient = () => {
+  assertSupabaseEnv()
+  if (!supabaseClient) {
+    supabaseClient = createClient(SUPABASE_URL!, SUPABASE_ANON_KEY!)
+  }
+  return supabaseClient
+}
+
+const consumeInviteToken = async (token: string) => {
+  const supabase = getSupabaseClient()
+  const { data, error } = await (supabase as any).rpc('consume_signup_invite_token', { p_token: token })
+  if (error) {
+    throw new Error(`Falha ao validar token de convite: ${error.message}`)
+  }
+  if (!data) {
+    throw new Error('Token de convite inválido, expirado ou já utilizado.')
+  }
+}
+
+const releaseInviteToken = async (token: string) => {
+  const supabase = getSupabaseClient()
+  await (supabase as any).rpc('release_signup_invite_token', { p_token: token })
+}
 
 const isQuizData = (value: unknown): value is QuizData => {
   if (!value || typeof value !== 'object') return false
@@ -60,11 +91,7 @@ export const loadQuizzesFromPublic = async (): Promise<UploadedQuiz[]> => {
 }
 
 export const loadQuizzesFromSupabase = async (): Promise<UploadedQuiz[]> => {
-  if (!SUPABASE_URL || !SUPABASE_ANON_KEY) {
-    throw new Error('Defina VITE_SUPABASE_URL e VITE_SUPABASE_ANON_KEY no ambiente.')
-  }
-
-  const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY)
+  const supabase = getSupabaseClient()
   const { data: files, error } = await supabase.storage.from(SUPABASE_BUCKET).list('', {
     limit: 100,
     sortBy: { column: 'name', order: 'asc' },
@@ -89,11 +116,7 @@ export const loadQuizzesFromSupabase = async (): Promise<UploadedQuiz[]> => {
 }
 
 export const uploadQuizzesToSupabase = async (files: File[]): Promise<void> => {
-  if (!SUPABASE_URL || !SUPABASE_ANON_KEY) {
-    throw new Error('Defina VITE_SUPABASE_URL e VITE_SUPABASE_ANON_KEY no ambiente.')
-  }
-
-  const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY)
+  const supabase = getSupabaseClient()
   const uploadResults = await Promise.allSettled(
     files.map(async (file) => {
       if (!file.name.endsWith('.json')) {
@@ -127,4 +150,43 @@ export const uploadQuizzesToSupabase = async (files: File[]): Promise<void> => {
       .join(' ')
     throw new Error(details)
   }
+}
+
+export const getCurrentSession = async (): Promise<Session | null> => {
+  const supabase = getSupabaseClient()
+  const { data, error } = await supabase.auth.getSession()
+  if (error) throw new Error(error.message)
+  return data.session
+}
+
+export const onAuthStateChanged = (callback: (event: AuthChangeEvent, session: Session | null) => void) => {
+  const supabase = getSupabaseClient()
+  const { data } = supabase.auth.onAuthStateChange(callback)
+  return data.subscription
+}
+
+export const signInWithEmail = async (email: string, password: string) => {
+  const supabase = getSupabaseClient()
+  const { error } = await supabase.auth.signInWithPassword({ email, password })
+  if (error) throw new Error(error.message)
+}
+
+export const signUpWithEmailAndInviteToken = async (email: string, password: string, inviteToken: string) => {
+  await consumeInviteToken(inviteToken)
+  const supabase = getSupabaseClient()
+  const { error } = await supabase.auth.signUp({
+    email,
+    password,
+    options: { data: { invite_token_used: true } },
+  })
+  if (error) {
+    await releaseInviteToken(inviteToken)
+    throw new Error(error.message)
+  }
+}
+
+export const signOutUser = async () => {
+  const supabase = getSupabaseClient()
+  const { error } = await supabase.auth.signOut()
+  if (error) throw new Error(error.message)
 }
