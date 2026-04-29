@@ -24,22 +24,16 @@ const getSupabaseClient = () => {
   return supabaseClient
 }
 
-const consumeInviteToken = async (token: string) => {
+const validateInviteToken = async (token: string) => {
   const supabase = getSupabaseClient()
   const rpcClient = supabase as unknown as InviteRpcClient
-  const { data, error } = await rpcClient.rpc('consume_signup_invite_token', { p_token: token })
+  const { data, error } = await rpcClient.rpc('validate_signup_invite_token', { p_token: token })
   if (error) {
     throw new Error(`Falha ao validar token de convite: ${error.message}`)
   }
   if (!data) {
-    throw new Error('Token de convite inválido, expirado ou já utilizado.')
+    throw new Error('Token de convite inválido ou expirado.')
   }
-}
-
-const releaseInviteToken = async (token: string) => {
-  const supabase = getSupabaseClient()
-  const rpcClient = supabase as unknown as InviteRpcClient
-  await rpcClient.rpc('release_signup_invite_token', { p_token: token })
 }
 
 const isQuizData = (value: unknown): value is QuizData => {
@@ -178,17 +172,14 @@ export const signInWithEmail = async (email: string, password: string) => {
 }
 
 export const signUpWithEmailAndInviteToken = async (email: string, password: string, inviteToken: string) => {
-  await consumeInviteToken(inviteToken)
+  await validateInviteToken(inviteToken)
   const supabase = getSupabaseClient()
   const { error } = await supabase.auth.signUp({
     email,
     password,
     options: { data: { invite_token_used: true } },
   })
-  if (error) {
-    await releaseInviteToken(inviteToken)
-    throw new Error(error.message)
-  }
+  if (error) throw new Error(error.message)
 }
 
 export const signOutUser = async () => {
